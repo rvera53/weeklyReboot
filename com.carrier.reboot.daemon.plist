@@ -3,14 +3,17 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.carrier.reboot.daemon</string>
+    <string>com.atos.reboot.daemon</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
         <string>/Library/Scripts/ForceRebootDaemon.sh</string>
     </array>
-    <key>RunAtLoad</key>
-    <true/>
+    
     <key>StartInterval</key>
-    <integer>600</integer> </dict>
+    <integer>600</integer> <key>StandardErrorPath</key>
+    <string>/var/log/com.carrier.WeeklyRebootNotifier.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/com.carrier.WeeklyRebootNotifier.log</string>
+</dict>
 </plist>

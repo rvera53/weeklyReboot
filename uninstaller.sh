@@ -1,7 +1,7 @@
 #!/bin/bash
 #####################################################################################################
 declare -x appName="WeeklyRebootUninstaller"
-declare -x appVer="1.0"
+declare -x appVer="1.1" # Added sendToLog and atos namespace
 declare -x appAuthor="Raul Vera"
 declare -x appDepartment="Atos WPS"
 declare -x appDate="20/Oct/2025"
@@ -21,22 +21,13 @@ declare -x runtime=$( date '+%d%m%Y%H%M%S' )
 # SYNOPSIS
 #   Safely removes all components of the Weekly Reboot Notifier solution.
 #
-# DESCRIPTION
-#   This script unloads and removes the LaunchAgent and LaunchDaemon, deletes the
-#   associated scripts, and cleans up any temporary or cache files. It must be run as root.
-#
 ####################################################################################################
-#
-# HISTORY
-#
-#   - Copyright 2022 AtoS. All rights reserved.
-#
 #
 # CHANGE LOG
 #
 #     Date                     Version          Description
 #--------------------------------------------------------------------------------------------------
-#     20/Oct/2025              1.0              Initial version.
+#     20/Oct/2025              1.1              Added sendToLog and atos namespace.
 #
 ####################################################################################################
 #Path export.
@@ -45,13 +36,13 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/libexec:/usr/local/bin"
 ####################################################################################################
 #Script logging
 ####################################################################################################
-declare -x logFile="/var/log/com.carrier.WeeklyRebootUninstaller.log"
+declare -x logFile="/var/log/com.atos.$appName.log"
 #Function to send the output of a command to the log
 sendToLog() {
     echo "$(date +"%a %b %d %T") $(hostname -s): [UNINSTALLER] $*" | tee -a "$logFile"
 }
 ####################################################################################################
-#
+# 
 # SCRIPT CONTENTS
 #
 ####################################################################################################
@@ -71,7 +62,7 @@ readonly AGENT_PLIST="/Library/LaunchAgents/com.carrier.weeklyreboot.agent.plist
 readonly DAEMON_PLIST="/Library/LaunchDaemons/com.carrier.reboot.daemon.plist"
 readonly AGENT_SCRIPT="/Library/Scripts/weeklyReboot.sh"
 readonly DAEMON_SCRIPT="/Library/Scripts/ForceRebootDaemon.sh"
-readonly SCRIPT_DIR="/Library/Scripts" # Adjusted to check the parent dir
+readonly SCRIPT_DIR="/Library/Scripts"
 readonly currentUser=$( scutil <<< "show State:/Users/ConsoleUser" | awk '/Name :/ && ! /loginwindow/ { print $3 }' )
 readonly CHECK_FILE="/Users/$currentUser/Library/Caches/com.carrier.weeklyreboot.ran"
 

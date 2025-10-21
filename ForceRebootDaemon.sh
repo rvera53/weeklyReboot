@@ -1,7 +1,7 @@
 #!/bin/bash
 #####################################################################################################
 declare -x appName="RebootDaemon"
-declare -x appVer="2.0" # Final file-based architecture
+declare -x appVer="2.1" # Switched to atos namespace
 declare -x appAuthor="Raul Vera"
 declare -x appDepartment="Atos WPS"
 declare -x appDate="20/Oct/2025"
@@ -18,52 +18,44 @@ declare -x runtime=$( date '+%d%m%Y%H%M%S' )
 # NAME
 #   RebootDaemon
 #
-# SYNOPSIS
+# DESCRIPTION
 #   Periodically checks for reboot instructions and executes them.
 #
-# DESCRIPTION
-#   This script is run by a LaunchDaemon on a regular interval. It checks for
-#   action/deferral files created by the agent script. It also checks system uptime
-#   as a failsafe. It performs the system reboot when conditions are met.
-#
 ####################################################################################################
-#
-# HISTORY
-#
-#   - Copyright 2022 AtoS. All rights reserved.
-#
 #
 # CHANGE LOG
 #
 #     Date                     Version          Description
 #--------------------------------------------------------------------------------------------------
-#     20/Oct/2025              2.0              Finalized robust file-based architecture.
+#     20/Oct/2025              2.1              Switched to atos namespace and shared log.
 #
 ####################################################################################################
 #Path export.
 ####################################################################################################
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
 ####################################################################################################
-#
+#Script logging
+####################################################################################################
+# Log to the *main* notifier log for unified debugging
+declare -x logFile="/var/log/com.atos.WeeklyRebootNotifier.log"
+#Function to send the output of a command to the log
+sendToLog() {
+    echo "$(date +"%a %b %d %T") $(hostname -s): [DAEMON] $*" | tee -a "$logFile"
+}
+####################################################################################################
+# 
 # SCRIPT CONTENTS
 #
 ####################################################################################################
 
 # --- GLOBAL VARIABLES ---
-readonly logFile="/var/log/com.carrier.WeeklyRebootNotifier.log"
 readonly UPTIME_LIMIT_DAYS=7
 
 # --- Communication files from the Agent ---
-readonly ACTION_FILE="/private/var/tmp/com.carrier.reboot.action"
-readonly DEFER_FILE="/private/var/tmp/com.carrier.reboot.deferral"
-
-# --- Logging Function ---
-sendToLog() {
-    echo "$(date +"%a %b %d %T") $(hostname -s): [DAEMON] $*" | tee -a "$logFile"
-}
+readonly ACTION_FILE="/private/var/tmp/com.atos.reboot.action"
+readonly DEFER_FILE="/private/var/tmp/com.atos.reboot.deferral"
 
 # --- Reboot Function ---
-# Logs the action, cleans up files, and performs the reboot.
 perform_reboot() {
     sendToLog "REBOOT TRIGGERED. Cleaning up files and restarting now."
     rm -f "$ACTION_FILE" "$DEFER_FILE"
@@ -86,7 +78,6 @@ boot_time=$(sysctl -n kern.boottime | awk -F'sec = |, ' '{print $2}')
 current_time=$(date +%s)
 uptime_days=$(( (current_time - boot_time) / 86400 ))
 
-# If uptime is low, it means a reboot happened. We do nothing.
 if [[ "$uptime_days" -lt "$UPTIME_LIMIT_DAYS" ]]; then
     sendToLog "Uptime ($uptime_days days) is within limits. No action needed."
     exit 0
@@ -97,7 +88,6 @@ sendToLog "Uptime ($uptime_days days) exceeds limit. Checking for deferral file.
 if [[ -f "$DEFER_FILE" ]]; then
     defer_expiry_time=$(cat "$DEFER_FILE")
     
-    # Check if the deferral time has passed.
     if [[ "$current_time" -gt "$defer_expiry_time" ]]; then
         sendToLog "Deferral has expired (Current: $current_time > Expiry: $defer_expiry_time)."
         perform_reboot
